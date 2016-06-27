@@ -1,0 +1,31 @@
+<idea-plugin version="2">
+    <extensions defaultExtensionNs="com.intellij.translation">
+        <translator implementation="com.intellij.translation.translator.YoudaoTranslator" />
+        <translator implementation="com.intellij.translation.translator.GoogleTranslator" />
+    </extensions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+        <projectService serviceInterface="com.intellij.translation.TranslationManager"
+                        serviceImplementation="com.intellij.translation.TranslationManager" />
+    </extensions>
+
+
+    <actions>
+        <group id="TranslationGroup">
+            <action id="QuickTranslate" class="com.intellij.translation.actions.ShowQuickTranslateAction"
+                    text="Quick _Translate" description="Show a popup window with translation for selected text">
+                <keyboard-shortcut keymap="$default" first-keystroke="F10"/>
+            </action>
+            <action id="ExternalTranslation" class="com.intellij.translation.actions.ExternalTranslationAction"
+                    text="External _Translation">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift F10"/>
+            </action>
+            <separator/>
+
+            <add-to-group group-id="ViewMenu" relative-to-action="CodeEditorBaseGroup" anchor="after"/>
+        </group>
+
+        <action id="QuickTranslateCopy" text="Copy Quick Dict" class="com.intellij.translation.actions.CopyQuickTranslateAction" use-shortcut-of="$Copy"/>
+    </actions>
+</idea-plugin>

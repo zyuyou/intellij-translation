@@ -1,0 +1,39 @@
+.trans{
+    padding: 0;
+    margin: 0 0 5px 0;
+    font-size: 3em;
+    font-weight: bold;
+}
+
+.web-trans{
+    padding: 0;
+    margin: 10px 0 5px 0;
+    height:26px;
+    line-height: 26px;
+    font-weight: normal;
+}
+
+.baav{
+    margin: 0px 0px 5px 10px;
+}
+
+ul, ol, li {
+    margin: 0;
+    padding: 0;
+    list-style-type:none;
+}
+
+.trans-container{
+    font-weight: normal;
+    color: #434343;
+    line-height: 24px;
+    margin-left: 10px;
+}
+
+.pronounce {
+    margin-right: 30px;
+    font-size: 14px;
+    color: #666;
+    display: inline-block;
+    line-height: 26px;
+}

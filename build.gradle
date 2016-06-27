@@ -1,0 +1,69 @@
+plugins {
+    id 'org.jetbrains.intellij' version "0.1.4"
+}
+
+version = "${version}.$buildNumber"
+allprojects {
+    apply plugin: 'java'
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs 'src'
+            resources.srcDirs 'resources', 'plugin/resources'
+        }
+        test {
+            java.srcDir 'tests'
+        }
+    }
+
+    apply plugin: 'org.jetbrains.intellij'
+    intellij {
+        version ideaVersion
+        downloadSources Boolean.valueOf(sources)
+        sameSinceUntilBuild Boolean.valueOf(isEAP)
+        pluginName 'intellij-translation'
+        publish {
+            username publishUser
+            password publishPassword
+        }
+    }
+
+    def compilationPackages = ['com/intellij/translation/build/**']
+
+    test {
+        useJUnit {
+            exclude compilationPackages
+        }
+        testLogging {
+            exceptionFormat = 'full'
+        }
+    }
+
+    task testCompilation(type: Test, group: 'Verification', dependsOn: [classes, testClasses]) {
+        useJUnit {
+            include compilationPackages
+        }
+        testLogging {
+            exceptionFormat = 'full'
+        }
+    }
+}
+
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+apply plugin: 'idea'
+idea {
+    project {
+        jdkName = javaVersion
+        languageLevel = javaVersion
+    }
+}

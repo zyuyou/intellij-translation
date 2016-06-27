@@ -1,0 +1,22 @@
+<idea-plugin url="https://github.com/zyuyou/intellij-translation" version="2" xmlns:xi="http://www.w3.org/2001/XInclude">
+    <id>com.intellij.translation</id>
+    <name>intellij-translation</name>
+    <vendor email="yuyouchow@gmail.com" url="https://github.com/zyuyou">Yuyou Chow</vendor>
+
+    <description><![CDATA[
+      Plugin for translate English to Chinese.
+    ]]></description>
+
+    <change-notes>
+    </change-notes>
+
+    <xi:include href="translation.xml" xpointer="xpointer(/idea-plugin/*)">
+        <xi:fallback>
+            <xi:include href="/META-INF/translation.xml" xpointer="xpointer(/idea-plugin/*)"/>
+        </xi:fallback>
+    </xi:include>
+
+    <extensionPoints>
+        <extensionPoint name="translator" interface="com.intellij.translation.translator.Translator"/>
+    </extensionPoints>
+</idea-plugin>
