@@ -11,7 +11,7 @@ Intellij IDEA 系列编辑器的翻译插件, 目前仅提供 **英文** -> **�
 
 ## Installation
 
-* [Intellij Plugins Home](https://plugins.jetbrains.com/plugin/8383) 下载
+* [Intellij Plugins Home](https://plugins.jetbrains.com/plugin/8445) 下载
 * 在IDEA编辑器的插件管理,搜索`intellij-translation` 下载. P.S. 可能不支持旧版本编辑器.
 
 ## Usage
