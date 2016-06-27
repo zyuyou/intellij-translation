@@ -19,15 +19,19 @@ Intellij IDEA 系列编辑器的翻译插件, 目前仅提供 **英文** -> **�
 选中代码, 选择 `View` -> `Quick Translate` 或者使用快捷键 `F10`, 效果如图:
 
 * 悬浮样式
+
 ![](./img/quick-translate.png)
 
 * Tool Windows
+
 ![](./img/quick-translate-tool-window.png)
 
 * Tool Windows 即时翻译
+
 ![](./img/auto-update-translation.gif)
 
 * `shift + F10` 网页翻译, 提供 **有道** 和 **谷歌翻译**
+
 ![](./img/web-external-translate.png)
 
 ## Todo List
