@@ -10,6 +10,7 @@
     <change-notes>
     </change-notes>
 
+    <depends>com.intellij.modules.lang</depends>
     <xi:include href="translation.xml" xpointer="xpointer(/idea-plugin/*)">
         <xi:fallback>
             <xi:include href="/META-INF/translation.xml" xpointer="xpointer(/idea-plugin/*)"/>
