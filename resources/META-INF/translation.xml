@@ -8,6 +8,11 @@
         <!-- Add your extensions here -->
         <projectService serviceInterface="com.intellij.translation.TranslationManager"
                         serviceImplementation="com.intellij.translation.TranslationManager" />
+
+        <applicationService serviceInterface="com.intellij.translation.settings.TranslationSettings"
+                            serviceImplementation="com.intellij.translation.settings.TranslationSettings"/>
+
+        <applicationConfigurable groupId="tools" instance="com.intellij.translation.settings.TranslationSettingsConfigurable"/>
     </extensions>
 
 

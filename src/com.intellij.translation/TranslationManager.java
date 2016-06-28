@@ -15,6 +15,7 @@
  */
 package com.intellij.translation;
 
+import com.intellij.codeInsight.CodeInsightBundle;
 import com.intellij.codeInsight.documentation.DockablePopupManager;
 import com.intellij.codeInsight.hint.HintManagerImpl;
 import com.intellij.ide.DataManager;
@@ -42,6 +43,7 @@ import com.intellij.openapi.wm.ex.WindowManagerEx;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.presentation.java.SymbolPresentationUtil;
 import com.intellij.translation.translator.Translator;
 import com.intellij.ui.ScrollingUtil;
 import com.intellij.ui.content.Content;
@@ -50,6 +52,7 @@ import com.intellij.ui.popup.PopupPositionManager;
 import com.intellij.util.Alarm;
 import com.intellij.util.Processor;
 import com.intellij.util.containers.ContainerUtil;
+import com.intellij.util.ui.accessibility.AccessibleContextUtil;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -215,7 +218,11 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 
 	@Override
 	protected String getTitle(PsiElement element) {
-		return "Translation";
+		return getTitle(element, true);
+	}
+
+	static String getTitle(@Nullable final PsiElement element, final boolean _short) {
+		return _short ? "": TranslationConstants.TOOL_WINDOW_ID;
 	}
 
 	@Override
@@ -293,7 +300,7 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 						IdeFocusManager.getInstance(myProject).requestFocus(preferredFocusableComponent, true);
 					}
 				}else{
-					content.setDisplayName(getTitle(null));
+					content.setDisplayName(getTitle(null, true));
 					fetchTranslation(getDefaultCollector(queryText), component, true);
 				}
 			}
@@ -343,7 +350,7 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 			.setMovable(true)
 			.setRequestFocus(requestFocus)
 			.setCancelOnClickOutside(true)
-			.setTitle(getTitle(null))
+			.setTitle(getTitle(null, false))
 			.setCouldPin(pinCallback)
 			.setModalContext(false)
 			.setCancelCallback(() -> {
@@ -393,7 +400,7 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 			myUpdateTranslationAlarm.cancelAllRequests();
 		}
 		if(wasEmpty){
-			component.setText(TranslationBundle.message("translation.fetching.progress"), null, clearHistory);
+			component.setText(TranslationBundle.message("translation.fetching.progress"), null, null);
 			final AbstractPopup jbPopup = (AbstractPopup) getTranslationHint();
 			if(jbPopup != null){
 				jbPopup.setDimensionServiceKey(null);
@@ -417,7 +424,7 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 					String message = ex[0] instanceof IndexNotReadyException
 						? "Translation is not available until indices are built."
 						: TranslationBundle.message("translation.external.fetch.error.message");
-					component.setText(message, null, true);
+					component.setText(message, null, null);
 					callback.setDone();
 				});
 				return;
@@ -432,11 +439,11 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 				PsiDocumentManager.getInstance(myProject).commitAllDocuments();
 
 				if(translationText == null){
-					component.setText(TranslationBundle.message("translation.no.info.found"), provider.getQuery(), true, clearHistory);
+					component.setText(TranslationBundle.message("translation.no.info.found"), provider.getQuery(), null);
 				}else if(translationText.isEmpty()){
-					component.setText(component.getText(), provider.getQuery(), true, clearHistory);
+					component.setText(component.getText(), provider.getQuery(), null);
 				}else{
-					component.setData(provider.getQuery(), translationText, clearHistory, provider.getExternalUrl(), provider.getRef());
+					component.setData(provider.getQuery(), translationText, provider.getTranslator());
 				}
 
 				final AbstractPopup jbPopup = (AbstractPopup) getTranslationHint();
@@ -446,7 +453,7 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 				}
 
 				jbPopup.setDimensionServiceKey(TRANSLATION_LOCATION_AND_SIZE);
-				jbPopup.setCaption(getTitle(null));
+				jbPopup.setCaption(getTitle(null, false));
 				callback.setDone();
 			});
 		}, 10);
@@ -455,11 +462,7 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 	}
 
 	private TranslationCollector getDefaultCollector(final String queryText){
-		return new DefaultTranslationCollector(queryText, null);
-	}
-
-	private TranslationCollector getDefaultCollector(@NotNull final String queryText, String ref){
-		return new DefaultTranslationCollector(queryText, ref);
+		return new DefaultTranslationCollector(queryText);
 	}
 
 	private interface TranslationCollector {
@@ -470,17 +473,16 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 		@Nullable
 		String getExternalUrl();
 		@Nullable
-		String getRef();
+		Translator getTranslator();
 	}
 
 	private class DefaultTranslationCollector implements TranslationCollector {
 		private final String myQuery;
-		private final String myRef;
 		private String myExternalUrl;
+		private Translator myTranslator;
 
-		public DefaultTranslationCollector(String query, String myRef) {
+		public DefaultTranslationCollector(String query) {
 			this.myQuery = query;
-			this.myRef = myRef;
 		}
 
 		@Nullable
@@ -497,8 +499,8 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 
 		@Nullable
 		@Override
-		public String getRef() {
-			return myRef;
+		public Translator getTranslator() {
+			return myTranslator;
 		}
 
 		@Nullable
@@ -510,6 +512,7 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 					if(translation != null){
 						LOG.debug("Fetched translation from ", provider.getTitle());
 						myExternalUrl = provider.getExternalUrl(myQuery);
+						myTranslator = provider;
 						return translation;
 					}
 				}

@@ -33,6 +33,7 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.registry.Registry;
 import com.intellij.openapi.wm.ex.WindowManagerEx;
+import com.intellij.translation.translator.Translator;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.SideBorder;
@@ -76,13 +77,14 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 	private final ActionToolbar myToolBar;
 	private volatile boolean myIsEmpty;
 	private boolean myIsShown;
-	private final JLabel myElementLabel;
+	private final JLabel myTranslatorLabel;
 	private final MutableAttributeSet myFontSizeStyle = new SimpleAttributeSet();
 	private JSlider myFontSizeSlider;
 	private final JComponent mySettingsPanel;
 	private final MyShowSettingsButton myShowSettingsButton;
 	private boolean myIgnoreFontSizeSliderChange;
 	private String myExternalUrl;
+	private Translator myTranslator;
 
 	private final JScrollPane myScrollPane;
 	private final JEditorPane myEditorPane;
@@ -278,11 +280,11 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 		myControlPanel = new JPanel(new BorderLayout(5, 5));
 		myControlPanel.setBorder(IdeBorderFactory.createBorder(SideBorder.BOTTOM));
 
-		myElementLabel = new JLabel();
-		myElementLabel.setMinimumSize(new Dimension(100, 0)); // do not recalculate size according to the text
+		myTranslatorLabel = new JLabel();
+		myTranslatorLabel.setMinimumSize(new Dimension(100, 0)); // do not recalculate size according to the text
 
 		myControlPanel.add(myToolBar.getComponent(), BorderLayout.WEST);
-		myControlPanel.add(myElementLabel, BorderLayout.CENTER);
+		myControlPanel.add(myTranslatorLabel, BorderLayout.CENTER);
 		myControlPanel.add(myShowSettingsButton = new MyShowSettingsButton(), BorderLayout.EAST);
 		myControlPanelVisible = false;
 
@@ -318,27 +320,6 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 	@Override
 	public void requestFocus() {
 		myScrollPane.requestFocus();
-	}
-
-	private static class LinkHighlighter implements Highlighter.HighlightPainter{
-		private final Stroke STROKE = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1, new float[]{1}, 0);
-
-		@Override
-		public void paint(Graphics g, int p0, int p1, Shape bounds, JTextComponent c) {
-			try{
-				Rectangle target = c.getUI().getRootView(c).modelToView(p0, Position.Bias.Forward, p1, Position.Bias.Backward, bounds).getBounds();
-				Graphics2D g2d = (Graphics2D)g.create();
-				try{
-					g2d.setStroke(STROKE);
-					g2d.setColor(c.getSelectionColor());
-					g2d.drawRect(target.x, target.y, target.width - 1, target.height - 1);
-				}finally {
-					g2d.dispose();
-				}
-			}catch (Exception e){
-				LOGGER.warn("Error painting link highlight", e);
-			}
-		}
 	}
 
 	private class MyShowSettingsButton extends ActionButton {
@@ -428,7 +409,7 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 			if (myQuery == null) {
 				return;
 			}
-			com.intellij.translation.actions.ExternalTranslationAction.showExternalTranslation(myQuery, myExternalUrl, e.getDataContext());
+			com.intellij.translation.actions.ExternalTranslationAction.showExternalTranslation(myQuery, myTranslator.getExternalUrl(myQuery), e.getDataContext());
 		}
 
 		@Override
@@ -494,7 +475,14 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 	}
 
 	private void updateControlState() {
-//		ElementLocationUtil.customizeElementLabel(myElement != null ? myElement.getElement() : null, myElementLabel);
+		if(myTranslator == null){
+			myTranslatorLabel.setText("");
+			myTranslatorLabel.setIcon(null);
+		}else{
+			myTranslatorLabel.setText(myTranslator.getTitle());
+			myTranslatorLabel.setIcon(myTranslator.getIcon());
+		}
+
 		myToolBar.updateActionsImmediately(); // update faster
 		setControlPanelVisible(true);   //(!myBackStack.isEmpty() || !myForwardStack.isEmpty());
 	}
@@ -618,37 +606,28 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 		myIsEmpty = true;
 	}
 
-	public void setText(String text, String query, boolean clearHistory){
-		setText(text, query, false, clearHistory);
-	}
-
-	public void setText(String text, String query, boolean clean, boolean clearHistory){
+	public void setText(String text, String query, Translator translator){
 		updateControlState();
-		setData(query, text, clearHistory, null);
-		if(clean){
-			myIsEmpty = false;
-		}
+		setData(query, text, translator);
+
+		myIsEmpty = false;
 	}
 
-	public void setData(String query, String text, final boolean clearHistory, String externalUrl){
-		setData(query, text, clearHistory, externalUrl, null);
-	}
-
-	public void setData(String query, String text, final boolean clearHistory, String externalUrl, String ref){
-		myExternalUrl = externalUrl;
+	public void setData(String query, String text, final Translator translator){
+		myTranslator = translator;
 
 		setQuery(query);
 
 		myIsEmpty = false;
 		updateControlState();
-		setDataInternal(query, text, new Rectangle(0, 0), ref);
+		setDataInternal(query, text, new Rectangle(0, 0));
 	}
 
 	private void setQuery(String query){
 		myQuery = query;
 	}
 
-	private void setDataInternal(String query, String text, final Rectangle viewRect, final String ref){
+	private void setDataInternal(String query, String text, final Rectangle viewRect){
 		setQuery(query);
 
 		myEditorPane.setText(text);
@@ -662,9 +641,10 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 		//noinspection SSBasedInspection
 		SwingUtilities.invokeLater(() -> {
 			myEditorPane.scrollRectToVisible(viewRect); // if ref is defined but is not found in document, this provides a default location
-			if (ref != null) {
-				myEditorPane.scrollToReference(ref);
-			}});
+//			if (ref != null) {
+//				myEditorPane.scrollToReference(ref);
+//			}
+		});
 	}
 
 	public String getText() {
