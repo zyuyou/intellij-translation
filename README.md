@@ -34,7 +34,10 @@ Intellij IDEA 系列编辑器的翻译插件, 目前仅提供 **英文** -> **�
 
 ![](./img/web-external-translate.png)
 
+* 翻译设置
+
+![](./img/translation-settings.png)
+
 ## Todo List
 
-* 提供现用功能的一些设置.
 * 提供 Google Translation 翻译, 需要企业版本api key.

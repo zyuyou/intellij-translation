@@ -18,6 +18,7 @@ package com.intellij.translation.translator;
 import com.google.gson.Gson;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.translation.icons.TranslationIcons;
+import com.intellij.translation.settings.TranslationSettings;
 import com.intellij.util.ResourceUtil;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -47,7 +48,7 @@ import static com.intellij.translation.TranslationConstants.REQUEST_TIMEOUT;
  * https://github.com/Skykai521/ECTranslation/blob/master/src/RequestRunnable.java
  * @author loucyin
  */
-public class YoudaoTranslator implements Translator {
+public class YoudaoTranslator extends TranslatorEx{
 	static final String HTTP_STYLE;
 
 	static {
@@ -75,27 +76,7 @@ public class YoudaoTranslator implements Translator {
 	@Nullable
 	@Override
 	public String fetchInfo(String query) {
-		final CloseableHttpClient client = createClient();
-		try{
-			final URI queryUrl = createUrl(query);
-			HttpGet httpGet = new HttpGet(queryUrl);
-			HttpResponse response = client.execute(httpGet);
-			int status = response.getStatusLine().getStatusCode();
-			if(status >= 200 && status < 300){
-				HttpEntity resEntity = response.getEntity();
-				String json = EntityUtils.toString(resEntity, "UTF-8");
-				return generateSuccess(json);
-			}else{
-				return generateFail(response.getStatusLine().getReasonPhrase());
-			}
-		}catch (Exception ignore){
-		}finally {
-			try{
-				client.close();
-			}catch (IOException ignore){
-			}
-		}
-		return null;
+		return TranslatorUtil.fetchInfo(query, this);
 	}
 
 	@Nullable
@@ -109,25 +90,15 @@ public class YoudaoTranslator implements Translator {
 		return null;
 	}
 
-	private static CloseableHttpClient createClient(){
-		HttpClientBuilder builder = HttpClients.custom();
-
-		return builder.setDefaultRequestConfig(
-			RequestConfig.custom().
-				setSocketTimeout(REQUEST_TIMEOUT).
-				setConnectTimeout(REQUEST_TIMEOUT).
-				setConnectionRequestTimeout(REQUEST_TIMEOUT).
-				build()
-		).build();
-	}
-
-	private URI createUrl(String query) throws URISyntaxException {
+	@NotNull
+	@Override
+	public URI createUrl(String query) throws URISyntaxException {
 		URIBuilder builder = new URIBuilder();
 		builder.setScheme("http")
 			.setHost("fanyi.youdao.com")
 			.setPath("/openapi.do")
-			.addParameter("keyfrom", "Skykai521")
-			.addParameter("key", "977124034")
+			.addParameter("keyfrom", TranslationSettings.getInstance().getYoudaoKeyfrom())
+			.addParameter("key", TranslationSettings.getInstance().getYoudaoApiKey())
 			.addParameter("type", "data")
 			.addParameter("version", "1.1")
 			.addParameter("doctype", "json")
@@ -135,19 +106,23 @@ public class YoudaoTranslator implements Translator {
 		return builder.build();
 	}
 
-	private String generateSuccess(String json){
+	@Nullable
+	@Override
+	public String generateSuccess(HttpEntity entity) throws IOException {
+		String json = EntityUtils.toString(entity, "UTF-8");
 		Gson gson = new Gson();
 		YoudaoTranslation result = gson.fromJson(json, YoudaoTranslation.class);
 		return decorateHtml(result.toString());
+	}
+
+	@Nullable
+	@Override
+	public String generateFail(HttpResponse response) {
+		return response.getStatusLine().getReasonPhrase();
 	}
 
 	@NotNull
 	private static String decorateHtml(@NotNull String retrievedHtml) {
 		return "<html>" + HTTP_STYLE + "<body>" + retrievedHtml + "</body></html>";
 	}
-
-	private String generateFail(String reasonPhrase){
-		return reasonPhrase;
-	}
-
 }
