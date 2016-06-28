@@ -15,7 +15,6 @@
  */
 package com.intellij.translation;
 
-import com.intellij.codeInsight.CodeInsightBundle;
 import com.intellij.codeInsight.documentation.DockablePopupManager;
 import com.intellij.codeInsight.hint.HintManagerImpl;
 import com.intellij.ide.DataManager;
@@ -36,6 +35,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.ActionCallback;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.wm.IdeFocusManager;
@@ -43,23 +43,24 @@ import com.intellij.openapi.wm.ex.WindowManagerEx;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.presentation.java.SymbolPresentationUtil;
 import com.intellij.translation.translator.Translator;
 import com.intellij.ui.ScrollingUtil;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.popup.AbstractPopup;
 import com.intellij.ui.popup.PopupPositionManager;
 import com.intellij.util.Alarm;
+import com.intellij.util.BooleanFunction;
 import com.intellij.util.Processor;
 import com.intellij.util.containers.ContainerUtil;
-import com.intellij.util.ui.accessibility.AccessibleContextUtil;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.lang.ref.WeakReference;
 import java.util.List;
 
@@ -322,17 +323,23 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 
 		// todo NavigateCallback
 
-		Processor<JBPopup> pinCallback = popup -> {
-			createToolWindow(null, null);
-			myToolWindow.setAutoHide(false);
-			popup.cancel();
-			return false;
+		Processor<JBPopup> pinCallback = new Processor<JBPopup>() {
+			@Override
+			public boolean process(JBPopup popup) {
+				TranslationManager.this.createToolWindow(null, null);
+				myToolWindow.setAutoHide(false);
+				popup.cancel();
+				return false;
+			}
 		};
 
-		ActionListener actionListener = e -> {
-			createToolWindow(null, null);
-			final JBPopup hint = getTranslationHint();
-			if(hint != null && hint.isVisible()) hint.cancel();
+		ActionListener actionListener = new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				TranslationManager.this.createToolWindow(null, null);
+				final JBPopup hint = TranslationManager.this.getTranslationHint();
+				if (hint != null && hint.isVisible()) hint.cancel();
+			}
 		};
 
 		List<Pair<ActionListener, KeyStroke>> actions = ContainerUtil.newSmartList();
@@ -353,25 +360,31 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 			.setTitle(getTitle(null, false))
 			.setCouldPin(pinCallback)
 			.setModalContext(false)
-			.setCancelCallback(() -> {
-				myCloseOnSneeze = false;
-				if(closeCallback != null){
-					closeCallback.run();
+			.setCancelCallback(new Computable<Boolean>() {
+				@Override
+				public Boolean compute() {
+					myCloseOnSneeze = false;
+					if (closeCallback != null) {
+						closeCallback.run();
+					}
+					Disposer.dispose(component);
+					myEditor = null;
+					myPreviouslyFocused = null;
+					return Boolean.TRUE;
 				}
-				Disposer.dispose(component);
-				myEditor = null;
-				myPreviouslyFocused = null;
-				return Boolean.TRUE;
 			})
-			.setKeyEventHandler(e -> {
-				if(myCloseOnSneeze){
-					closeTranslationHint();
+			.setKeyEventHandler(new BooleanFunction<KeyEvent>() {
+				@Override
+				public boolean fun(KeyEvent e) {
+					if (myCloseOnSneeze) {
+						TranslationManager.this.closeTranslationHint();
+					}
+					if (AbstractPopup.isCloseRequest(e) && TranslationManager.this.getTranslationHint() != null) {
+						TranslationManager.this.closeTranslationHint();
+						return true;
+					}
+					return false;
 				}
-				if(AbstractPopup.isCloseRequest(e) && getTranslationHint() != null){
-					closeTranslationHint();
-					return true;
-				}
-				return false;
 			})
 			.createPopup();
 
@@ -379,7 +392,7 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 
 		fetchTranslation(getDefaultCollector(queryText), component);
 
-		myTranslationHintRef = new WeakReference<>(hint);
+		myTranslationHintRef = new WeakReference<JBPopup>(hint);
 	}
 
 	public void fetchTranslation(final TranslationCollector provider, final TranslationComponent component){
@@ -407,55 +420,64 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 			}
 		}
 
-		myUpdateTranslationAlarm.addRequest( () -> {
-			if(myProject.isDisposed()) return ;
-			LOG.debug("Started fetching com.intellij.translation...");
-			final Throwable[] ex = new Throwable[1];
-			String text = null;
-			try{
-				text = provider.getTranslation();
-			}catch (Throwable e){
-				LOG.info(e);
-				ex[0] = e;
-			}
-			if(ex[0] != null){
+		myUpdateTranslationAlarm.addRequest(new Runnable() {
+			@Override
+			public void run() {
+				if(myProject.isDisposed()) return ;
+				LOG.debug("Started fetching com.intellij.translation...");
+				final Throwable[] ex = new Throwable[1];
+				String text = null;
+				try{
+					text = provider.getTranslation();
+				}catch (Throwable e){
+					LOG.info(e);
+					ex[0] = e;
+				}
+				if(ex[0] != null){
+					//noinspection SSBasedInspection
+					SwingUtilities.invokeLater(new Runnable() {
+						@Override
+						public void run() {
+							String message = ex[0] instanceof IndexNotReadyException
+								? "Translation is not available until indices are built."
+								: TranslationBundle.message("translation.external.fetch.error.message");
+							component.setText(message, null, null);
+							callback.setDone();
+						}
+					});
+					return;
+				}
+
+				LOG.debug("Translation fetched successfully:\n", text);
+
+				final String translationText = text;
+
 				//noinspection SSBasedInspection
-				SwingUtilities.invokeLater(() -> {
-					String message = ex[0] instanceof IndexNotReadyException
-						? "Translation is not available until indices are built."
-						: TranslationBundle.message("translation.external.fetch.error.message");
-					component.setText(message, null, null);
-					callback.setDone();
+				SwingUtilities.invokeLater(new Runnable() {
+					@Override
+					public void run() {
+						PsiDocumentManager.getInstance(myProject).commitAllDocuments();
+
+						if (translationText == null) {
+							component.setText(TranslationBundle.message("translation.no.info.found"), provider.getQuery(), null);
+						} else if (translationText.isEmpty()) {
+							component.setText(component.getText(), provider.getQuery(), null);
+						} else {
+							component.setData(provider.getQuery(), translationText, provider.getTranslator());
+						}
+
+						final AbstractPopup jbPopup = (AbstractPopup) getTranslationHint();
+						if (jbPopup == null) {
+							callback.setDone();
+							return;
+						}
+
+						jbPopup.setDimensionServiceKey(TRANSLATION_LOCATION_AND_SIZE);
+						jbPopup.setCaption(getTitle(null, false));
+						callback.setDone();
+					}
 				});
-				return;
 			}
-
-			LOG.debug("Translation fetched successfully:\n", text);
-
-			final String translationText = text;
-
-			//noinspection SSBasedInspection
-			SwingUtilities.invokeLater(() -> {
-				PsiDocumentManager.getInstance(myProject).commitAllDocuments();
-
-				if(translationText == null){
-					component.setText(TranslationBundle.message("translation.no.info.found"), provider.getQuery(), null);
-				}else if(translationText.isEmpty()){
-					component.setText(component.getText(), provider.getQuery(), null);
-				}else{
-					component.setData(provider.getQuery(), translationText, provider.getTranslator());
-				}
-
-				final AbstractPopup jbPopup = (AbstractPopup) getTranslationHint();
-				if(jbPopup == null){
-					callback.setDone();
-					return ;
-				}
-
-				jbPopup.setDimensionServiceKey(TRANSLATION_LOCATION_AND_SIZE);
-				jbPopup.setCaption(getTitle(null, false));
-				callback.setDone();
-			});
 		}, 10);
 
 		return callback;

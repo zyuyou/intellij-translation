@@ -15,17 +15,14 @@
  */
 package com.intellij.translation.settings;
 
-import com.intellij.openapi.components.PersistentStateComponent;
-import com.intellij.openapi.components.ServiceManager;
-import com.intellij.openapi.components.State;
-import com.intellij.openapi.components.Storage;
+import com.intellij.openapi.components.*;
 import com.intellij.translation.translator.Translator;
 import com.intellij.translation.translator.YoudaoTranslator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("MethodMayStatic")
-@State(name = "TranslationSettings", storages = @Storage("translation_settings.xml"))
+@State(name = "TranslationSettings", storages = {@Storage(file = StoragePathMacros.APP_CONFIG + "/translation_settings.xml")})
 public class TranslationSettings implements PersistentStateComponent<TranslationSettings.State> {
 	private State myState = new State();
 

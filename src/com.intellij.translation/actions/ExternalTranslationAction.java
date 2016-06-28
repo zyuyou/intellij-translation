@@ -77,42 +77,47 @@ public class ExternalTranslationAction extends AnAction {
 		}
 	}
 
-	public static void showExternalTranslation(String query, String externalUrl, DataContext dataContext){
+	public static void showExternalTranslation(final String query, final String externalUrl, DataContext dataContext){
 		final Component contextComponent = PlatformDataKeys.CONTEXT_COMPONENT.getData(dataContext);
 
-		ApplicationManager.getApplication().executeOnPooledThread(() -> {
-			final List<String> urls = new ArrayList<String>();
-			final List<Icon> icons = new ArrayList<Icon>();
+		ApplicationManager.getApplication().executeOnPooledThread(new Runnable() {
+			@Override
+			public void run() {
+				final List<String> urls = new ArrayList<String>();
+				final List<Icon> icons = new ArrayList<Icon>();
 
-			if(StringUtil.isEmptyOrSpaces(externalUrl)){
-				for(Translator translator: TranslationManager.TRANSLATOR_EP.getExtensions()){
-					String url = translator.getExternalUrl(query);
-					if(url != null){
-						urls.add(url);
-						icons.add(translator.getIcon());
-					}
-				}
-			}else{
-				urls.add(externalUrl);
-			}
-
-			ApplicationManager.getApplication().invokeLater( () -> {
-				if(ContainerUtil.isEmpty(urls)){
-					// do nothing
-				}else if(urls.size() == 1){
-					BrowserUtil.browse(urls.get(0));
-				}else{
-					JBPopupFactory.getInstance().createListPopup(new BaseListPopupStep<String>("Choose external translation root",
-						ArrayUtil.toStringArray(urls), ArrayUtil.toObjectArray(icons, Icon.class)) {
-						@Override
-						public PopupStep onChosen(final String selectedValue, final boolean finalChoice) {
-							BrowserUtil.browse(selectedValue);
-							return FINAL_CHOICE;
+				if (StringUtil.isEmptyOrSpaces(externalUrl)) {
+					for (Translator translator : TranslationManager.TRANSLATOR_EP.getExtensions()) {
+						final String url = translator.getExternalUrl(query);
+						if (url != null) {
+							urls.add(url);
+							icons.add(translator.getIcon());
 						}
-					}).showInBestPositionFor(DataManager.getInstance().getDataContext(contextComponent));
+					}
+				} else {
+					urls.add(externalUrl);
 				}
 
-			}, ModalityState.NON_MODAL);
+				ApplicationManager.getApplication().invokeLater(new Runnable() {
+					@Override
+					public void run() {
+						if (ContainerUtil.isEmpty(urls)) {
+							// do nothing
+						} else if (urls.size() == 1) {
+							BrowserUtil.browse(urls.get(0));
+						} else {
+							JBPopupFactory.getInstance().createListPopup(new BaseListPopupStep<String>("Choose external translation root", ArrayUtil.toStringArray(urls), ArrayUtil.toObjectArray(icons, Icon.class)) {
+								@Override
+								public PopupStep onChosen(final String selectedValue, final boolean finalChoice) {
+									BrowserUtil.browse(selectedValue);
+									return FINAL_CHOICE;
+								}
+							}).showInBestPositionFor(DataManager.getInstance().getDataContext(contextComponent));
+						}
+
+					}
+				}, ModalityState.NON_MODAL);
+			}
 		});
 	}
 

@@ -198,7 +198,12 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 		};
 		myEditorPane.addMouseListener(mouseAdapter);
 
-		Disposer.register(this, () -> myEditorPane.removeMouseListener(mouseAdapter));
+		Disposer.register(this, new Disposable() {
+			@Override
+			public void dispose() {
+				myEditorPane.removeMouseListener(mouseAdapter);
+			}
+		});
 
 		final FocusListener focusAdapter = new FocusAdapter() {
 			@Override
@@ -214,7 +219,12 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 		};
 		myEditorPane.addFocusListener(focusAdapter);
 
-		Disposer.register(this, () -> myEditorPane.removeFocusListener(focusAdapter));
+		Disposer.register(this, new Disposable() {
+			@Override
+			public void dispose() {
+				myEditorPane.removeFocusListener(focusAdapter);
+			}
+		});
 
 		setLayout(new BorderLayout());
 		JLayeredPane layeredPane = new JBLayeredPane(){
@@ -378,7 +388,12 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 		}
 
 		ApplicationManager.getApplication().executeOnPooledThread(
-			() -> styledDocument.setCharacterAttributes(0, styledDocument.getLength(), myFontSizeStyle, false)
+			new Runnable() {
+				@Override
+				public void run() {
+					styledDocument.setCharacterAttributes(0, styledDocument.getLength(), myFontSizeStyle, false);
+				}
+			}
 		);
 	}
 
@@ -639,11 +654,14 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 		}
 		myText = text;
 		//noinspection SSBasedInspection
-		SwingUtilities.invokeLater(() -> {
-			myEditorPane.scrollRectToVisible(viewRect); // if ref is defined but is not found in document, this provides a default location
+		SwingUtilities.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				myEditorPane.scrollRectToVisible(viewRect); // if ref is defined but is not found in document, this provides a default location
 //			if (ref != null) {
 //				myEditorPane.scrollToReference(ref);
 //			}
+			}
 		});
 	}
 
