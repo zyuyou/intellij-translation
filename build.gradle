@@ -26,6 +26,7 @@ allprojects {
         version ideaVersion
         downloadSources Boolean.valueOf(sources)
         sameSinceUntilBuild Boolean.valueOf(isEAP)
+        intellij.updateSinceUntilBuild false
         pluginName 'intellij-translation'
         publish {
             username publishUser

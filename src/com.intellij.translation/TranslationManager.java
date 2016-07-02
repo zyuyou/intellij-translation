@@ -44,7 +44,6 @@ import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.translation.translator.Translator;
-import com.intellij.ui.ScrollingUtil;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.popup.AbstractPopup;
 import com.intellij.ui.popup.PopupPositionManager;
@@ -106,7 +105,6 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 						((AbstractPopup)hint).focusPreferredComponent();
 						return;
 					}
-					if(action instanceof ScrollingUtil.ListScrollAction) return;
 					if(action == myActionManager.getAction(IdeActions.ACTION_EDITOR_MOVE_CARET_DOWN)) return;
 					if(action == myActionManager.getAction(IdeActions.ACTION_EDITOR_MOVE_CARET_UP)) return;
 					if(action == myActionManager.getAction(IdeActions.ACTION_EDITOR_MOVE_CARET_PAGE_DOWN)) return;
@@ -168,6 +166,8 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 	@Override
 	protected AnAction createRestorePopupAction() {
 		myRestorePopupAction = super.createRestorePopupAction();
+		ShortcutSet quickTranslateShortcut = ActionManager.getInstance().getAction("QuickTranslate").getShortcutSet();
+		myRestorePopupAction.registerCustomShortcutSet(quickTranslateShortcut, null);
 		return myRestorePopupAction;
 	}
 
@@ -180,20 +180,20 @@ public class TranslationManager extends DockablePopupManager<TranslationComponen
 		updateComponent();
 	}
 
-	@Override
-	public void createToolWindow(PsiElement element, PsiElement originalElement) {
-		super.createToolWindow(element, originalElement);
-
-		// switch between toolWindow and popup
-		if(myToolWindow != null){
-			myToolWindow.getComponent().putClientProperty(ChooseByNameBase.TEMPORARILY_FOCUSABLE_COMPONENT_KEY, Boolean.TRUE);
-			if(myRestorePopupAction != null){
-				ShortcutSet quickTranslateShortCut = ActionManager.getInstance().getAction(TranslationConstants.ACTION_QUICK_TRANSLATE).getShortcutSet();
-				myRestorePopupAction.registerCustomShortcutSet(quickTranslateShortCut, myToolWindow.getComponent());
-				myRestorePopupAction = null;
-			}
-		}
-	}
+//	@Override
+//	public void createToolWindow(PsiElement element, PsiElement originalElement) {
+//		super.createToolWindow(element, originalElement);
+//
+//		// switch between toolWindow and popup
+//		if(myToolWindow != null){
+//			myToolWindow.getComponent().putClientProperty(ChooseByNameBase.TEMPORARILY_FOCUSABLE_COMPONENT_KEY, Boolean.TRUE);
+//			if(myRestorePopupAction != null){
+//				ShortcutSet quickTranslateShortCut = ActionManager.getInstance().getAction(TranslationConstants.ACTION_QUICK_TRANSLATE).getShortcutSet();
+//				myRestorePopupAction.registerCustomShortcutSet(quickTranslateShortCut, myToolWindow.getComponent());
+//				myRestorePopupAction = null;
+//			}
+//		}
+//	}
 
 
 

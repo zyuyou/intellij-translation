@@ -10,6 +10,7 @@
     <change-notes>
     </change-notes>
 
+    <idea-version since-build="139.225.3" until-build="141.9999"/>
     <depends>com.intellij.modules.lang</depends>
     <xi:include href="translation.xml" xpointer="xpointer(/idea-plugin/*)">
         <xi:fallback>

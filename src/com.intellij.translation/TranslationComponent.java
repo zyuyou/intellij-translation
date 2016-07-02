@@ -40,8 +40,6 @@ import com.intellij.ui.SideBorder;
 import com.intellij.ui.components.JBLayeredPane;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.GraphicsUtil;
-import com.intellij.util.ui.JBDimension;
-import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -58,6 +56,8 @@ import java.awt.event.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.intellij.translation.TranslationConstants.TRANSLATION_INPLACE_SETTINGS;
+
 /**
  * Created by zyuyou on 16/6/21.
  *
@@ -66,6 +66,12 @@ import java.util.Map;
  */
 public class TranslationComponent extends JPanel implements Disposable, DataProvider {
 	private static Logger LOGGER = Logger.getInstance(TranslationComponent.class);
+
+	private static final DataContext EMPTY_DATA_CONTEXT = new DataContext() {
+		public Object getData(@NonNls String dataId) {
+			return null;
+		}
+	};
 
 	private static final int PREFERRED_WIDTH_EM = 37;
 	private static final int PREFERRED_HEIGHT_MIN_EM = 7;
@@ -155,7 +161,7 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 		myText = "";
 		myEditorPane.setEditable(false);
 		myEditorPane.setBackground(HintUtil.INFORMATION_COLOR);
-		myEditorPane.setEditorKit(UIUtil.getHTMLEditorKit(false));
+		myEditorPane.setEditorKit(UIUtil.getHTMLEditorKit());
 
 		myScrollPane = new JBScrollPane(myEditorPane){
 			@Override
@@ -249,13 +255,6 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 				return getSize(editorPaneSize, controlPanelSize);
 			}
 
-			@Override
-			public Dimension getMinimumSize() {
-				Dimension editorPaneSize = new JBDimension(20, 20);
-				Dimension controlPanelSize = myControlPanel.getMinimumSize();
-				return getSize(editorPaneSize, controlPanelSize);
-			}
-
 			private Dimension getSize(Dimension editorPaneSize, Dimension controlPanelSize){
 				return new Dimension(Math.max(editorPaneSize.width, controlPanelSize.width), editorPaneSize.height + controlPanelSize.height);
 			}
@@ -334,7 +333,7 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 
 	private class MyShowSettingsButton extends ActionButton {
 		private MyShowSettingsButton() {
-			this(new MyShowSettingsAction(), new Presentation(), TranslationConstants.TRANSLATION_INPLACE_SETTINGS, ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE);
+			this(new MyShowSettingsAction(), new Presentation(), TRANSLATION_INPLACE_SETTINGS, ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE);
 		}
 
 		private MyShowSettingsButton(AnAction action, Presentation presentation, String place, @NotNull Dimension minimumSize) {
@@ -346,7 +345,7 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 			if (!mySettingsPanel.isVisible()) {
 				return;
 			}
-			AnActionEvent event = AnActionEvent.createFromDataContext(myPlace, myPresentation, DataContext.EMPTY_CONTEXT);
+			AnActionEvent event = new AnActionEvent(null, EMPTY_DATA_CONTEXT, TRANSLATION_INPLACE_SETTINGS, this.myPresentation, ActionManager.getInstance(), 0);
 			myAction.actionPerformed(event);
 		}
 	}
@@ -382,7 +381,7 @@ public class TranslationComponent extends JPanel implements Disposable, DataProv
 
 		EditorColorsManager colorsManager = EditorColorsManager.getInstance();
 		EditorColorsScheme scheme = colorsManager.getGlobalScheme();
-		StyleConstants.setFontSize(myFontSizeStyle, JBUI.scale(scheme.getQuickDocFontSize().getSize()));
+		StyleConstants.setFontSize(myFontSizeStyle, scheme.getQuickDocFontSize().getSize());
 		if(Registry.is("documentation.component.editor.font")){
 			StyleConstants.setFontFamily(myFontSizeStyle, scheme.getEditorFontName());
 		}
