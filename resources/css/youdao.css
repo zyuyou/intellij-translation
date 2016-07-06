@@ -25,7 +25,6 @@ ul, ol, li {
 
 .trans-container{
     font-weight: normal;
-    color: #434343;
     line-height: 24px;
     margin-left: 10px;
 }
@@ -33,7 +32,7 @@ ul, ol, li {
 .pronounce {
     margin-right: 30px;
     font-size: 14px;
-    color: #666;
+    color: #0000ff;
     display: inline-block;
     line-height: 26px;
 }
