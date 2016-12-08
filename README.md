@@ -1,4 +1,6 @@
-# Intellij Translation
+# Deprecated
+本插件不再提供维护, 这里推荐另外一个更强大的翻译插件 [YiiGuxing/TranslationPlugin](https://github.com/YiiGuxing/TranslationPlugin), 非常感谢各位的支持.
+## Intellij Translation
 
 Intellij IDEA 系列编辑器的翻译插件, 目前仅提供 **英文** -> **中文** 翻译.
 
