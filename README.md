@@ -43,3 +43,6 @@ Intellij IDEA 系列编辑器的翻译插件, 目前仅提供 **英文** -> **�
 ## Todo List
 
 * 提供 Google Translation 翻译, 需要企业版本api key.
+
+## Test Idea Task Plugin
+
